@@ -28,10 +28,13 @@ model Task {
     description String?
     status      TaskStatus @default(TODO)
     dueDate     DateTime?
+    order       Int        @default(0) 
     userId      String
     user        User       @relation(fields: [userId], references: [id])
     projectId   String?
     project     Project?   @relation(fields: [projectId], references: [id])
+    Column      Column?    @relation(fields: [columnId], references: [id])
+    columnId    String?
 }
 
 model Project {
@@ -40,12 +43,25 @@ model Project {
     updatedAt   DateTime      @updatedAt
     name        String
     description String?
-    color       String        @default("#808080") // Default to gray
+    color       String        @default("#808080")
     isFavorite  Boolean       @default(false)
     design      ProjectDesign @default(LIST)
+    order       Int           @default(0) 
     userId      String
     user        User          @relation(fields: [userId], references: [id])
     tasks       Task[]
+    Column      Column[]
+}
+
+model Column {
+    id        String   @id @default(uuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    title     String
+    order     Int      @default(0) 
+    projectId String
+    project   Project  @relation(fields: [projectId], references: [id])
+    tasks     Task[]
 }
 
 enum ProjectDesign {

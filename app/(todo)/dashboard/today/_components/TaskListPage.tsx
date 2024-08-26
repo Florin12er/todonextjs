@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,63 +33,79 @@ import {
   DropResult,
 } from "@hello-pangea/dnd";
 
-// Mock data for tasks
-const initialTasks = [
-  {
-    id: 1,
-    title: "Complete project proposal",
-    status: "In Progress",
-    dueDate: new Date(2023, 7, 15),
-  },
-  {
-    id: 2,
-    title: "Review team performance",
-    status: "Todo",
-    dueDate: new Date(2023, 7, 20),
-  },
-  {
-    id: 3,
-    title: "Prepare presentation",
-    status: "Done",
-    dueDate: new Date(2023, 7, 18),
-  },
-];
+type Task = {
+  id: number;
+  title: string;
+  status: string;
+  dueDate: Date;
+};
 
-export default function TaskListPage() {
-  const [tasks, setTasks] = useState(initialTasks);
+type TaskListPageProps = {
+  initialTasks?: Task[];
+  onAddTask?: (task: Omit<Task, "id">) => void;
+  onUpdateTask?: (task: Task) => void;
+  onDeleteTask?: (taskId: number) => void;
+};
+
+export function TaskListPage({
+  initialTasks = [],
+  onAddTask,
+  onUpdateTask,
+  onDeleteTask,
+}: TaskListPageProps) {
+  const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [newTaskTitle, setNewTaskTitle] = useState("");
+
+  useEffect(() => {
+    setTasks(initialTasks);
+  }, [initialTasks]);
 
   const addTask = () => {
     if (newTaskTitle.trim() !== "") {
       const newTask = {
-        id: tasks.length + 1,
         title: newTaskTitle,
         status: "Todo",
         dueDate: new Date(),
       };
-      setTasks([...tasks, newTask]);
+      if (onAddTask) {
+        onAddTask(newTask);
+      } else {
+        setTasks([...tasks, { ...newTask, id: tasks.length + 1 }]);
+      }
       setNewTaskTitle("");
     }
   };
 
   const removeTask = (id: number) => {
-    setTasks(tasks.filter((task) => task.id !== id));
+    if (onDeleteTask) {
+      onDeleteTask(id);
+    } else {
+      setTasks(tasks.filter((task) => task.id !== id));
+    }
   };
 
   const updateTaskStatus = (id: number, newStatus: string) => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === id ? { ...task, status: newStatus } : task,
-      ),
-    );
+    const updatedTask = tasks.find((task) => task.id === id);
+    if (updatedTask) {
+      const newTask = { ...updatedTask, status: newStatus };
+      if (onUpdateTask) {
+        onUpdateTask(newTask);
+      } else {
+        setTasks(tasks.map((task) => (task.id === id ? newTask : task)));
+      }
+    }
   };
 
   const updateTaskDueDate = (id: number, newDate: Date) => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === id ? { ...task, dueDate: newDate } : task,
-      ),
-    );
+    const updatedTask = tasks.find((task) => task.id === id);
+    if (updatedTask) {
+      const newTask = { ...updatedTask, dueDate: newDate };
+      if (onUpdateTask) {
+        onUpdateTask(newTask);
+      } else {
+        setTasks(tasks.map((task) => (task.id === id ? newTask : task)));
+      }
+    }
   };
 
   const onDragEnd = (result: DropResult) => {
@@ -111,6 +127,14 @@ export default function TaskListPage() {
     newTasks.splice(destination.index, 0, reorderedTask);
 
     setTasks(newTasks);
+
+    if (onUpdateTask) {
+      newTasks.forEach((task, index) => {
+        if (task.id !== tasks[index].id) {
+          onUpdateTask(task);
+        }
+      });
+    }
   };
 
   return (

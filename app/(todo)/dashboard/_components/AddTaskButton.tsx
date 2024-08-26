@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,40 +27,107 @@ import {
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
+import { toast } from "@/components/ui/use-toast";
+import { Spinner } from "@/components/ui/Spinner";
+import { Switch } from "@/components/ui/switch";
 
-// Mock projects
-const mockProjects = [
-  { id: "1", name: "Personal" },
-  { id: "2", name: "Work" },
-  { id: "3", name: "Side Project" },
-];
+type Project = {
+  id: string;
+  name: string;
+};
 
 export function AddTaskButton() {
   const [isOpen, setIsOpen] = useState(false);
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
-  const [projectId, setProjectId] = useState("");
+  const [projectId, setProjectId] = useState<string | null>(null);
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
+  const [isToday, setIsToday] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  const fetchProjects = async () => {
+    setIsLoading(true);
+    try {
+      const [projectsResponse, favoriteProjectsResponse] = await Promise.all([
+        fetch("/api/projects"),
+        fetch("/api/projects/favorite"),
+      ]);
+
+      if (!projectsResponse.ok || !favoriteProjectsResponse.ok) {
+        throw new Error("Failed to fetch projects");
+      }
+
+      const projectsData = await projectsResponse.json();
+      const favoriteProjectsData = await favoriteProjectsResponse.json();
+
+      setProjects([...favoriteProjectsData, ...projectsData]);
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch projects. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement task creation logic here
-    console.log("Creating task:", {
-      taskTitle,
-      taskDescription,
-      projectId,
-      dueDate,
-    });
-    setIsOpen(false);
-    resetForm();
+    try {
+      const response = await fetch("/api/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: taskTitle,
+          description: taskDescription,
+          projectId,
+          dueDate,
+          isToday,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create task");
+      }
+
+      const createdTask = await response.json();
+      console.log("Task created:", createdTask);
+      toast({
+        title: "Success",
+        description: "Task created successfully.",
+      });
+      setIsOpen(false);
+      resetForm();
+    } catch (error) {
+      console.error("Error creating task:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create task. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const resetForm = () => {
     setTaskTitle("");
     setTaskDescription("");
-    setProjectId("");
+    setProjectId(null);
     setDueDate(undefined);
+    setIsToday(false);
   };
+
+  if (isLoading) {
+    return <Spinner />;
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -82,6 +149,7 @@ export function AddTaskButton() {
               value={taskTitle}
               onChange={(e) => setTaskTitle(e.target.value)}
               placeholder="Enter task title"
+              required
             />
           </div>
           <div className="space-y-2">
@@ -93,21 +161,26 @@ export function AddTaskButton() {
               placeholder="Enter task description"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="project">Project</Label>
-            <Select value={projectId} onValueChange={setProjectId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a project" />
-              </SelectTrigger>
-              <SelectContent>
-                {mockProjects.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    {project.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {projects.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="project">Project (Optional)</Label>
+              <Select
+                value={projectId || undefined}
+                onValueChange={setProjectId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a project" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Due Date</Label>
             <Popover>
@@ -131,6 +204,10 @@ export function AddTaskButton() {
                 />
               </PopoverContent>
             </Popover>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch id="today" checked={isToday} onCheckedChange={setIsToday} />
+            <Label htmlFor="today">Add to Today</Label>
           </div>
           <Button type="submit" className="w-full">
             Create Task

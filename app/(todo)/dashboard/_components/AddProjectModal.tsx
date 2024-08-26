@@ -1,3 +1,4 @@
+// AddProjectModal.tsx
 "use client";
 
 import { useState } from "react";
@@ -18,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/use-toast";
 
 const colorOptions = [
   { value: "#FF5733", label: "Red" },
@@ -34,8 +36,8 @@ type AddProjectModalProps = {
     name: string;
     color: string;
     isFavorite: boolean;
-    design: string;
-  }) => void;
+    design: "LIST" | "BOARD";
+  }) => Promise<void>;
 };
 
 export function AddProjectModal({
@@ -46,18 +48,43 @@ export function AddProjectModal({
   const [projectName, setProjectName] = useState("");
   const [projectColor, setProjectColor] = useState("#808080");
   const [isFavorite, setIsFavorite] = useState(false);
-  const [projectDesign, setProjectDesign] = useState("LIST");
+  const [projectDesign, setProjectDesign] = useState<"LIST" | "BOARD">("LIST");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleAddProject = (e: React.FormEvent) => {
+  const handleAddProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    onAddProject({
-      name: projectName,
-      color: projectColor,
-      isFavorite,
-      design: projectDesign,
-    });
-    onOpenChange(false);
-    resetForm();
+    if (!projectName.trim()) {
+      toast({
+        title: "Error",
+        description: "Project name is required.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await onAddProject({
+        name: projectName,
+        color: projectColor,
+        isFavorite,
+        design: projectDesign,
+      });
+      toast({
+        title: "Success",
+        description: "Project created successfully.",
+      });
+      onOpenChange(false);
+      resetForm();
+    } catch (error) {
+      console.error("Error creating project:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create project. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const resetForm = () => {
@@ -81,6 +108,7 @@ export function AddProjectModal({
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
               placeholder="Enter project name"
+              required
             />
           </div>
           <div className="space-y-2">
@@ -114,7 +142,12 @@ export function AddProjectModal({
           </div>
           <div className="space-y-2">
             <Label htmlFor="projectDesign">Project Design</Label>
-            <Select value={projectDesign} onValueChange={setProjectDesign}>
+            <Select
+              value={projectDesign}
+              onValueChange={(value: "LIST" | "BOARD") =>
+                setProjectDesign(value)
+              }
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select a design" />
               </SelectTrigger>
@@ -124,8 +157,8 @@ export function AddProjectModal({
               </SelectContent>
             </Select>
           </div>
-          <Button type="submit" className="w-full">
-            Create Project
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? "Creating..." : "Create Project"}
           </Button>
         </form>
       </DialogContent>

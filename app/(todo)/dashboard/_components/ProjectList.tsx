@@ -1,47 +1,91 @@
+// ProjectsList.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddProjectModal } from "./AddProjectModal";
 import { ProjectButton } from "./ProjectButton";
+import { toast } from "@/components/ui/use-toast";
+import { Spinner } from "@/components/ui/Spinner";
 
-// Mock projects
-const mockProjects = [
-  {
-    id: "1",
-    name: "Personal",
-    color: "#FF5733",
-    isFavorite: true,
-    design: "LIST",
-  },
-  {
-    id: "2",
-    name: "Work",
-    color: "#33FF57",
-    isFavorite: false,
-    design: "BOARD",
-  },
-  {
-    id: "3",
-    name: "Side Project",
-    color: "#3357FF",
-    isFavorite: false,
-    design: "LIST",
-  },
-];
+type Project = {
+  id: string;
+  name: string;
+  color: string;
+  isFavorite: boolean;
+  design: "LIST" | "BOARD";
+};
 
 export function ProjectsList() {
   const [isOpen, setIsOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [projects, setProjects] = useState(mockProjects);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleAddProject = (newProject) => {
-    // TODO: Implement project creation logic here
-    console.log("Creating project:", newProject);
-    // For now, let's just add it to the local state
-    setProjects([...projects, { ...newProject, id: Date.now().toString() }]);
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  const fetchProjects = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/projects");
+      if (!response.ok) {
+        throw new Error("Failed to fetch projects");
+      }
+      const data = await response.json();
+      setProjects(data);
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch projects. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const handleAddProject = async (newProject: Omit<Project, "id">) => {
+    try {
+      const response = await fetch("/api/projects", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newProject),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create project");
+      }
+
+      const createdProject = await response.json();
+      setProjects([...projects, createdProject]);
+      toast({
+        title: "Success",
+        description: "Project created successfully.",
+      });
+    } catch (error) {
+      console.error("Error creating project:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to create project. Please try again.",
+        variant: "destructive",
+      });
+      throw error; // Re-throw the error so the modal can handle it
+    }
+  };
+
+  if (isLoading) {
+    return <Spinner size={20} />;
+  }
 
   return (
     <div className="space-y-2">

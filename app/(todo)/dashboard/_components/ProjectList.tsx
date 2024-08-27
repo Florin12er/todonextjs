@@ -1,7 +1,8 @@
 // ProjectsList.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddProjectModal } from "./AddProjectModal";
@@ -17,75 +18,60 @@ type Project = {
   design: "LIST" | "BOARD";
 };
 
+const fetchProjects = async (): Promise<Project[]> => {
+  const response = await fetch("/api/projects");
+  if (!response.ok) {
+    throw new Error("Failed to fetch projects");
+  }
+  return response.json();
+};
+
 export function ProjectsList() {
   const [isOpen, setIsOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
+  const {
+    data: projects,
+    isLoading,
+    error,
+  } = useQuery<Project[], Error>({
+    queryKey: ["projects"],
+    queryFn: fetchProjects,
+    refetchInterval: 30000, // Refetch every 30 seconds as a fallback
+  });
 
-  const fetchProjects = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch("/api/projects");
-      if (!response.ok) {
-        throw new Error("Failed to fetch projects");
-      }
-      const data = await response.json();
-      setProjects(data);
-    } catch (error) {
-      console.error("Error fetching projects:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch projects. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleAddProject = async (newProject: Omit<Project, "id">) => {
-    try {
-      const response = await fetch("/api/projects", {
+  const addProjectMutation = useMutation<Project, Error, Omit<Project, "id">>({
+    mutationFn: (newProject) =>
+      fetch("/api/projects", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newProject),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create project");
-      }
-
-      const createdProject = await response.json();
-      setProjects([...projects, createdProject]);
-      toast({
-        title: "Success",
-        description: "Project created successfully.",
-      });
-    } catch (error) {
-      console.error("Error creating project:", error);
+      }).then((res) => {
+        if (!res.ok) throw new Error("Failed to create project");
+        return res.json();
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      toast({ title: "Success", description: "Project created successfully." });
+      setIsOpen(false);
+    },
+    onError: (error) => {
       toast({
         title: "Error",
         description:
-          error instanceof Error
-            ? error.message
-            : "Failed to create project. Please try again.",
+          error.message || "Failed to create project. Please try again.",
         variant: "destructive",
       });
-      throw error; // Re-throw the error so the modal can handle it
-    }
+    },
+  });
+
+  const handleAddProject = async (newProject: Omit<Project, "id">) => {
+    addProjectMutation.mutate(newProject);
   };
 
-  if (isLoading) {
-    return <Spinner size={20} />;
-  }
+  if (isLoading) return <Spinner size={20} />;
+  if (error) return <div>Error loading projects</div>;
 
   return (
     <div className="space-y-2">
@@ -116,14 +102,14 @@ export function ProjectsList() {
         <>
           <div className="ml-4 space-y-1">
             {projects
-              .filter((p) => p.isFavorite)
+              ?.filter((p) => p.isFavorite)
               .map((project) => (
                 <ProjectButton key={project.id} project={project} />
               ))}
           </div>
           <div className="ml-4 space-y-1">
             {projects
-              .filter((p) => !p.isFavorite)
+              ?.filter((p) => !p.isFavorite)
               .map((project) => (
                 <ProjectButton key={project.id} project={project} />
               ))}

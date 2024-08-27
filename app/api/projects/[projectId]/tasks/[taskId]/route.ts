@@ -14,18 +14,23 @@ export async function PUT(
     }
 
     const body = await req.json();
-    const { title, columnId, dueDate } = body;
+    const { title, description, dueDate, completed, isToday, columnId, order } =
+      body;
 
-    const task = await prisma.task.update({
-      where: { id: params.taskId, userId },
+    const updatedTask = await prisma.task.update({
+      where: { id: params.taskId, projectId: params.projectId },
       data: {
         title,
-        columnId,
+        description,
         dueDate: dueDate ? new Date(dueDate) : null,
+        completed,
+        isToday,
+        columnId,
+        order,
       },
     });
 
-    return NextResponse.json(task);
+    return NextResponse.json(updatedTask);
   } catch (error) {
     console.error(
       "PUT /api/projects/[projectId]/tasks/[taskId] - Error:",

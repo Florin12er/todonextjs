@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { TaskListPage } from "./_components/TaskListPage";
-import { TaskBoardPage } from "./_components/TaskBoardPage";
 import { Button } from "@/components/ui/button";
 
 export default function TasksPage() {
@@ -24,7 +22,6 @@ export default function TasksPage() {
           Board View
         </Button>
       </div>
-      {view === "list" ? <TaskListPage /> : <TaskBoardPage />}
     </div>
   );
 }

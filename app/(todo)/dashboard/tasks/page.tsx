@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { TaskBoardPage } from "../today/_components/TaskBoardPage";
 import { Button } from "@/components/ui/button";
-import { TaskListPage } from "../today/_components/TaskListPage";
 
 export default function TasksPage() {
   const [view, setView] = useState<"list" | "board">("list");
@@ -24,7 +22,6 @@ export default function TasksPage() {
           Board View
         </Button>
       </div>
-      {view === "list" ? <TaskListPage /> : <TaskBoardPage />}
     </div>
   );
 }

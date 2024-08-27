@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { DragDropContext, Droppable, DropResult } from "@hello-pangea/dnd";
 import { TaskColumn } from "./TaskColumn";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,11 @@ type TaskBoardPageProps = {
   onAddColumn: (column: Omit<Column, "id">) => Promise<void>;
   onUpdateColumn: (column: Column) => Promise<void>;
   onDeleteColumn: (columnId: string) => Promise<void>;
+  onMoveTask: (
+    taskId: string,
+    sourceColumnId: string,
+    destinationColumnId: string,
+  ) => Promise<void>;
 };
 
 export function TaskBoardPage({
@@ -26,6 +31,7 @@ export function TaskBoardPage({
   onAddColumn,
   onUpdateColumn,
   onDeleteColumn,
+  onMoveTask,
 }: TaskBoardPageProps) {
   const [newColumnTitle, setNewColumnTitle] = useState("");
 
@@ -38,6 +44,11 @@ export function TaskBoardPage({
       });
       setNewColumnTitle("");
     }
+  };
+
+  const toggleTaskCompletion = async (task: Task) => {
+    const updatedTask = { ...task, completed: !task.completed };
+    await onUpdateTask(updatedTask);
   };
 
   const onDragEnd = async (result: DropResult) => {
@@ -86,6 +97,8 @@ export function TaskBoardPage({
       const finishTasks = Array.from(finishColumn.tasks);
       finishTasks.splice(destination.index, 0, movedTask);
 
+      await onMoveTask(draggableId, startColumn.id, finishColumn.id);
+
       const updatedStartColumn = {
         ...startColumn,
         tasks: startTasks,
@@ -98,7 +111,6 @@ export function TaskBoardPage({
 
       await onUpdateColumn(updatedStartColumn);
       await onUpdateColumn(updatedFinishColumn);
-      await onUpdateTask({ ...movedTask, columnId: finishColumn.id });
     }
   };
 
@@ -137,6 +149,7 @@ export function TaskBoardPage({
                   onDeleteTask={onDeleteTask}
                   onUpdateColumn={onUpdateColumn}
                   onDeleteColumn={onDeleteColumn}
+                  onToggleTaskCompletion={toggleTaskCompletion}
                 />
               ))}
               {provided.placeholder}

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
@@ -13,38 +14,38 @@ type Project = {
   color: string;
 };
 
+const fetchFavoriteProjects = async (): Promise<Project[]> => {
+  const response = await fetch("/api/projects/favorite");
+  if (!response.ok) {
+    throw new Error("Failed to fetch favorite projects");
+  }
+  return response.json();
+};
+
 export function FavoriteProjectsList() {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [favoriteProjects, setFavoriteProjects] = useState<Project[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    fetchFavoriteProjects();
-  }, []);
-
-  const fetchFavoriteProjects = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch("/api/projects/favorite");
-      if (!response.ok) {
-        throw new Error("Failed to fetch favorite projects");
-      }
-      const data = await response.json();
-      setFavoriteProjects(data);
-    } catch (error) {
-      console.error("Error fetching favorite projects:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch favorite projects. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const {
+    data: favoriteProjects,
+    isLoading,
+    error,
+  } = useQuery<Project[], Error>({
+    queryKey: ["favoriteProjects"],
+    queryFn: fetchFavoriteProjects,
+    refetchInterval: 30000, // Refetch every 30 seconds as a fallback
+  });
 
   if (isLoading) {
     return <Spinner size={20} />;
+  }
+
+  if (error) {
+    toast({
+      title: "Error",
+      description: "Failed to fetch favorite projects. Please try again.",
+      variant: "destructive",
+    });
+    return <div>Error loading favorite projects</div>;
   }
 
   return (
@@ -65,7 +66,7 @@ export function FavoriteProjectsList() {
       </Button>
       {!isCollapsed && (
         <div className="ml-4 space-y-1">
-          {favoriteProjects.length > 0 ? (
+          {favoriteProjects && favoriteProjects.length > 0 ? (
             favoriteProjects.map((project) => (
               <FavoriteProjectButton key={project.id} project={project} />
             ))

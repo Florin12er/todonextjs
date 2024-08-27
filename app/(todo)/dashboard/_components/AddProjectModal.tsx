@@ -29,15 +29,17 @@ const colorOptions = [
   { value: "#FF33FF", label: "Purple" },
 ];
 
+type NewProject = {
+  name: string;
+  color: string;
+  design: "LIST" | "BOARD";
+  isFavorite: boolean;
+};
+
 type AddProjectModalProps = {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddProject: (project: {
-    name: string;
-    color: string;
-    isFavorite: boolean;
-    design: "LIST" | "BOARD";
-  }) => Promise<void>;
+  onAddProject: (project: NewProject) => Promise<void>;
 };
 
 export function AddProjectModal({
@@ -47,8 +49,8 @@ export function AddProjectModal({
 }: AddProjectModalProps) {
   const [projectName, setProjectName] = useState("");
   const [projectColor, setProjectColor] = useState("#808080");
-  const [isFavorite, setIsFavorite] = useState(false);
   const [projectDesign, setProjectDesign] = useState<"LIST" | "BOARD">("LIST");
+  const [isFavorite, setIsFavorite] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAddProject = async (e: React.FormEvent) => {
@@ -66,8 +68,8 @@ export function AddProjectModal({
       await onAddProject({
         name: projectName,
         color: projectColor,
-        isFavorite,
         design: projectDesign,
+        isFavorite,
       });
       toast({
         title: "Success",
@@ -90,8 +92,8 @@ export function AddProjectModal({
   const resetForm = () => {
     setProjectName("");
     setProjectColor("#808080");
-    setIsFavorite(false);
     setProjectDesign("LIST");
+    setIsFavorite(false);
   };
 
   return (
@@ -132,14 +134,6 @@ export function AddProjectModal({
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="favorite"
-              checked={isFavorite}
-              onCheckedChange={setIsFavorite}
-            />
-            <Label htmlFor="favorite">Favorite</Label>
-          </div>
           <div className="space-y-2">
             <Label htmlFor="projectDesign">Project Design</Label>
             <Select
@@ -156,6 +150,14 @@ export function AddProjectModal({
                 <SelectItem value="BOARD">Board</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="isFavorite"
+              checked={isFavorite}
+              onCheckedChange={setIsFavorite}
+            />
+            <Label htmlFor="isFavorite">Favorite</Label>
           </div>
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? "Creating..." : "Create Project"}

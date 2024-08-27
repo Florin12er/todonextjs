@@ -6,8 +6,9 @@ export type Task = {
   dueDate: Date | null;
   completed: boolean;
   isToday: boolean;
-  columnId: string | null;
   projectId: string | null;
+  columnId: string | null;
+  order?: number;
 };
 export type Column = {
   id: string;

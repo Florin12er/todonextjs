@@ -50,8 +50,8 @@ model Task {
     user        User      @relation(fields: [userId], references: [id])
     projectId   String?
     project     Project?  @relation(fields: [projectId], references: [id])
-    columnId    String
-    column      Column    @relation(fields: [columnId], references: [id])
+    columnId    String?
+    column      Column?   @relation(fields: [columnId], references: [id])
 }
 
 model Column {

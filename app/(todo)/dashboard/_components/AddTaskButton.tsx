@@ -92,6 +92,7 @@ export function AddTaskButton() {
           projectId,
           dueDate,
           isToday,
+          columnId: projectId ? undefined : null, // Send undefined if projectId is set, null otherwise
         }),
       });
 
@@ -116,7 +117,6 @@ export function AddTaskButton() {
       });
     }
   };
-
   const resetForm = () => {
     setTaskTitle("");
     setTaskDescription("");

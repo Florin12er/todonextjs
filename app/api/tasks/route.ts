@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { title, description, projectId, dueDate, isToday } = body;
+    const { title, description, projectId, dueDate, isToday, columnId } = body;
 
     if (!title) {
       return NextResponse.json(
@@ -20,15 +20,41 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    let targetColumnId = columnId;
+
+    // If projectId is provided but columnId is not, find or create a default column
+    if (projectId && !targetColumnId) {
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+        include: { columns: { orderBy: { order: "asc" } } },
+      });
+
+      if (project) {
+        if (project.columns.length > 0) {
+          targetColumnId = project.columns[0].id;
+        } else {
+          // Create a default column if the project has no columns
+          const defaultColumn = await prisma.column.create({
+            data: {
+              title: "To Do",
+              order: 0,
+              projectId: projectId,
+            },
+          });
+          targetColumnId = defaultColumn.id;
+        }
+      }
+    }
+
     const task = await prisma.task.create({
       data: {
         title,
         description,
-        status: "TODO",
         dueDate: dueDate ? new Date(dueDate) : null,
         isToday,
         userId,
         projectId: projectId || null,
+        columnId: targetColumnId,
       },
     });
 

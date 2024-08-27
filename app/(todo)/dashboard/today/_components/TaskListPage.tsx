@@ -33,22 +33,19 @@ import {
   DropResult,
 } from "@hello-pangea/dnd";
 
-type Task = {
-  id: number;
-  title: string;
-  status: string;
-  dueDate: Date;
-};
+import { Task, Column } from "@/types/task";
 
 type TaskListPageProps = {
-  initialTasks?: Task[];
-  onAddTask?: (task: Omit<Task, "id">) => void;
-  onUpdateTask?: (task: Task) => void;
-  onDeleteTask?: (taskId: number) => void;
+  initialTasks: Task[];
+  columns: Column[];
+  onAddTask: (task: Omit<Task, "id">) => Promise<void>;
+  onUpdateTask: (task: Task) => Promise<void>;
+  onDeleteTask: (taskId: string) => Promise<void>;
 };
 
 export function TaskListPage({
-  initialTasks = [],
+  initialTasks,
+  columns,
   onAddTask,
   onUpdateTask,
   onDeleteTask,
@@ -61,53 +58,40 @@ export function TaskListPage({
   }, [initialTasks]);
 
   const addTask = () => {
-    if (newTaskTitle.trim() !== "") {
-      const newTask = {
+    if (newTaskTitle.trim() !== "" && columns.length > 0) {
+      const newTask: Omit<Task, "id"> = {
         title: newTaskTitle,
-        status: "Todo",
+        description: "",
         dueDate: new Date(),
+        completed: false,
+        isToday: false,
+        columnId: columns[0].id,
+        projectId: null,
       };
-      if (onAddTask) {
-        onAddTask(newTask);
-      } else {
-        setTasks([...tasks, { ...newTask, id: tasks.length + 1 }]);
-      }
+      onAddTask(newTask);
       setNewTaskTitle("");
     }
   };
 
-  const removeTask = (id: number) => {
-    if (onDeleteTask) {
-      onDeleteTask(id);
-    } else {
-      setTasks(tasks.filter((task) => task.id !== id));
-    }
+  const removeTask = (id: string) => {
+    onDeleteTask(id);
   };
 
-  const updateTaskStatus = (id: number, newStatus: string) => {
+  const updateTaskStatus = (id: string, newColumnId: string) => {
     const updatedTask = tasks.find((task) => task.id === id);
     if (updatedTask) {
-      const newTask = { ...updatedTask, status: newStatus };
-      if (onUpdateTask) {
-        onUpdateTask(newTask);
-      } else {
-        setTasks(tasks.map((task) => (task.id === id ? newTask : task)));
-      }
+      const newTask = { ...updatedTask, columnId: newColumnId };
+      onUpdateTask(newTask);
     }
   };
 
-  const updateTaskDueDate = (id: number, newDate: Date) => {
+  const updateTaskDueDate = (id: string, newDate: Date | undefined) => {
     const updatedTask = tasks.find((task) => task.id === id);
     if (updatedTask) {
-      const newTask = { ...updatedTask, dueDate: newDate };
-      if (onUpdateTask) {
-        onUpdateTask(newTask);
-      } else {
-        setTasks(tasks.map((task) => (task.id === id ? newTask : task)));
-      }
+      const newTask = { ...updatedTask, dueDate: newDate ?? null };
+      onUpdateTask(newTask);
     }
   };
-
   const onDragEnd = (result: DropResult) => {
     const { destination, source } = result;
 
@@ -128,13 +112,12 @@ export function TaskListPage({
 
     setTasks(newTasks);
 
-    if (onUpdateTask) {
-      newTasks.forEach((task, index) => {
-        if (task.id !== tasks[index].id) {
-          onUpdateTask(task);
-        }
-      });
-    }
+    // Update task positions
+    newTasks.forEach((task, index) => {
+      if (task.id !== tasks[index].id) {
+        onUpdateTask(task);
+      }
+    });
   };
 
   return (
@@ -168,11 +151,7 @@ export function TaskListPage({
             {(provided) => (
               <TableBody {...provided.droppableProps} ref={provided.innerRef}>
                 {tasks.map((task, index) => (
-                  <Draggable
-                    key={task.id}
-                    draggableId={task.id.toString()}
-                    index={index}
-                  >
+                  <Draggable key={task.id} draggableId={task.id} index={index}>
                     {(provided) => (
                       <TableRow
                         ref={provided.innerRef}
@@ -182,20 +161,20 @@ export function TaskListPage({
                         <TableCell>{task.title}</TableCell>
                         <TableCell>
                           <Select
-                            value={task.status}
-                            onValueChange={(newStatus) =>
-                              updateTaskStatus(task.id, newStatus)
+                            value={task.columnId || undefined}
+                            onValueChange={(newColumnId) =>
+                              updateTaskStatus(task.id, newColumnId)
                             }
                           >
                             <SelectTrigger className="w-[180px]">
                               <SelectValue placeholder="Status" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="Todo">Todo</SelectItem>
-                              <SelectItem value="In Progress">
-                                In Progress
-                              </SelectItem>
-                              <SelectItem value="Done">Done</SelectItem>
+                              {columns.map((column) => (
+                                <SelectItem key={column.id} value={column.id}>
+                                  {column.title}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </TableCell>
@@ -203,15 +182,17 @@ export function TaskListPage({
                           <Popover>
                             <PopoverTrigger asChild>
                               <Button variant="outline">
-                                {format(task.dueDate, "PP")}
+                                {task.dueDate
+                                  ? format(task.dueDate, "PP")
+                                  : "Set due date"}
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0">
                               <Calendar
                                 mode="single"
-                                selected={task.dueDate}
+                                selected={task.dueDate || undefined}
                                 onSelect={(date) =>
-                                  date && updateTaskDueDate(task.id, date)
+                                  updateTaskDueDate(task.id, date)
                                 }
                                 initialFocus
                               />

@@ -6,90 +6,42 @@ import { TaskColumn } from "./TaskColumn";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus } from "lucide-react";
-
-type Task = {
-  id: number;
-  title: string;
-  status: string;
-  dueDate: Date;
-};
+import { Task, Column } from "@/types/task";
 
 type TaskBoardPageProps = {
-  initialTasks?: Task[];
-  initialStatuses?: string[];
-  onAddTask?: (task: Omit<Task, "id">) => void;
-  onUpdateTask?: (task: Task) => void;
-  onDeleteTask?: (taskId: number) => void;
-  onAddStatus?: (status: string) => void;
+  columns: Column[];
+  onAddTask: (task: Omit<Task, "id">) => Promise<void>;
+  onUpdateTask: (task: Task) => Promise<void>;
+  onDeleteTask: (taskId: string) => Promise<void>;
+  onAddColumn: (column: Omit<Column, "id">) => Promise<void>;
+  onUpdateColumn: (column: Column) => Promise<void>;
+  onDeleteColumn: (columnId: string) => Promise<void>;
 };
 
 export function TaskBoardPage({
-  initialTasks = [],
-  initialStatuses = ["Todo", "In Progress", "Done"],
+  columns,
   onAddTask,
   onUpdateTask,
   onDeleteTask,
-  onAddStatus,
+  onAddColumn,
+  onUpdateColumn,
+  onDeleteColumn,
 }: TaskBoardPageProps) {
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
-  const [statuses, setStatuses] = useState<string[]>(initialStatuses);
   const [newColumnTitle, setNewColumnTitle] = useState("");
 
-  useEffect(() => {
-    setTasks(initialTasks);
-  }, [initialTasks]);
-
-  useEffect(() => {
-    setStatuses(initialStatuses);
-  }, [initialStatuses]);
-
-  const addTask = (title: string, status: string) => {
-    const newTask = {
-      id: Math.max(0, ...tasks.map((t) => t.id)) + 1,
-      title,
-      status,
-      dueDate: new Date(),
-    };
-    if (onAddTask) {
-      onAddTask({ title, status, dueDate: new Date() });
-    } else {
-      setTasks([...tasks, newTask]);
-    }
-  };
-
-  const updateTask = (id: number, updates: Partial<Task>) => {
-    const updatedTask = tasks.find((task) => task.id === id);
-    if (updatedTask) {
-      const newTask = { ...updatedTask, ...updates };
-      if (onUpdateTask) {
-        onUpdateTask(newTask);
-      } else {
-        setTasks(tasks.map((task) => (task.id === id ? newTask : task)));
-      }
-    }
-  };
-
-  const removeTask = (id: number) => {
-    if (onDeleteTask) {
-      onDeleteTask(id);
-    } else {
-      setTasks(tasks.filter((task) => task.id !== id));
-    }
-  };
-
-  const addColumn = () => {
+  const addColumn = async () => {
     if (newColumnTitle.trim() !== "") {
-      if (onAddStatus) {
-        onAddStatus(newColumnTitle);
-      } else {
-        setStatuses([...statuses, newColumnTitle]);
-      }
+      await onAddColumn({
+        title: newColumnTitle,
+        order: columns.length,
+        tasks: [],
+      });
       setNewColumnTitle("");
     }
   };
 
-  const onDragEnd = (result: DropResult) => {
-    const { destination, source, type } = result;
+  const onDragEnd = async (result: DropResult) => {
+    const { destination, source, draggableId, type } = result;
 
     if (!destination) return;
 
@@ -100,56 +52,53 @@ export function TaskBoardPage({
       return;
 
     if (type === "COLUMN") {
-      const newStatuses = Array.from(statuses);
-      const [reorderedStatus] = newStatuses.splice(source.index, 1);
-      newStatuses.splice(destination.index, 0, reorderedStatus);
-      setStatuses(newStatuses);
+      const newColumns = Array.from(columns);
+      const [reorderedColumn] = newColumns.splice(source.index, 1);
+      newColumns.splice(destination.index, 0, reorderedColumn);
+
+      for (let i = 0; i < newColumns.length; i++) {
+        await onUpdateColumn({ ...newColumns[i], order: i });
+      }
       return;
     }
 
-    const start = source.droppableId;
-    const finish = destination.droppableId;
+    const startColumn = columns.find((col) => col.id === source.droppableId);
+    const finishColumn = columns.find(
+      (col) => col.id === destination.droppableId,
+    );
 
-    if (start === finish) {
-      const columnTasks = tasks.filter((task) => task.status === start);
-      const reorderedTasks = Array.from(columnTasks);
-      const [reorderedTask] = reorderedTasks.splice(source.index, 1);
-      reorderedTasks.splice(destination.index, 0, reorderedTask);
+    if (!startColumn || !finishColumn) return;
 
-      const newTasks = tasks.map((task) =>
-        task.status === start
-          ? reorderedTasks[reorderedTasks.findIndex((t) => t.id === task.id)] ||
-            task
-          : task,
-      );
+    if (startColumn === finishColumn) {
+      const newTasks = Array.from(startColumn.tasks);
+      const [reorderedTask] = newTasks.splice(source.index, 1);
+      newTasks.splice(destination.index, 0, reorderedTask);
 
-      setTasks(newTasks);
-      if (onUpdateTask) {
-        newTasks.forEach((task) => {
-          if (task.status === start) {
-            onUpdateTask(task);
-          }
-        });
-      }
+      const updatedColumn = {
+        ...startColumn,
+        tasks: newTasks,
+      };
+
+      await onUpdateColumn(updatedColumn);
     } else {
-      const startTasks = tasks.filter((task) => task.status === start);
-      const finishTasks = tasks.filter((task) => task.status === finish);
+      const startTasks = Array.from(startColumn.tasks);
       const [movedTask] = startTasks.splice(source.index, 1);
-      const updatedMovedTask = { ...movedTask, status: finish };
-      finishTasks.splice(destination.index, 0, updatedMovedTask);
+      const finishTasks = Array.from(finishColumn.tasks);
+      finishTasks.splice(destination.index, 0, movedTask);
 
-      const newTasks = tasks.map((task) => {
-        if (task.status === start)
-          return startTasks.find((t) => t.id === task.id) || task;
-        if (task.status === finish)
-          return finishTasks.find((t) => t.id === task.id) || task;
-        return task;
-      });
+      const updatedStartColumn = {
+        ...startColumn,
+        tasks: startTasks,
+      };
 
-      setTasks(newTasks);
-      if (onUpdateTask) {
-        onUpdateTask(updatedMovedTask);
-      }
+      const updatedFinishColumn = {
+        ...finishColumn,
+        tasks: finishTasks,
+      };
+
+      await onUpdateColumn(updatedStartColumn);
+      await onUpdateColumn(updatedFinishColumn);
+      await onUpdateTask({ ...movedTask, columnId: finishColumn.id });
     }
   };
 
@@ -178,15 +127,16 @@ export function TaskBoardPage({
               ref={provided.innerRef}
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
             >
-              {statuses.map((status, index) => (
+              {columns.map((column, index) => (
                 <TaskColumn
-                  key={status}
-                  status={status}
+                  key={column.id}
+                  column={column}
                   index={index}
-                  tasks={tasks.filter((task) => task.status === status)}
-                  onAddTask={addTask}
-                  onUpdateTask={updateTask}
-                  onRemoveTask={removeTask}
+                  onAddTask={onAddTask}
+                  onUpdateTask={onUpdateTask}
+                  onDeleteTask={onDeleteTask}
+                  onUpdateColumn={onUpdateColumn}
+                  onDeleteColumn={onDeleteColumn}
                 />
               ))}
               {provided.placeholder}

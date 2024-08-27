@@ -1,10 +1,27 @@
-type Task = {
+// types.ts or types/index.ts
+export type Task = {
   id: string;
   title: string;
   description?: string;
-  dueDate: string | null;
+  dueDate: Date | null;
   completed: boolean;
-  columnId: string;
+  isToday: boolean;
+  columnId: string | null;
+  projectId: string | null;
+};
+export type Column = {
+  id: string;
+  title: string;
+  order: number;
+  tasks: Task[];
 };
 
-export default Task;
+export type Project = {
+  id: string;
+  name: string;
+  description?: string;
+  color: string;
+  isFavorite: boolean;
+  design: "LIST" | "BOARD";
+  columns: Column[];
+};

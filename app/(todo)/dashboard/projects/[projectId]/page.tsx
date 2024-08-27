@@ -8,30 +8,7 @@ import { TaskBoardPage } from "../../today/_components/TaskBoardPage";
 import { TaskListPage } from "../../today/_components/TaskListPage";
 import { toast } from "@/components/ui/use-toast";
 import { Spinner } from "@/components/ui/Spinner";
-import Task from "@prisma/client";
-
-// In your ProjectPage component (page.tsx)
-type Task = {
-  id: string;
-  title: string;
-  description?: string;
-  dueDate?: string | null;
-  completed: boolean;
-  columnId: string;
-};
-
-type Column = {
-  id: string;
-  title: string;
-  tasks: Task[];
-};
-
-type Project = {
-  id: string;
-  name: string;
-  design: "LIST" | "BOARD";
-  columns: Column[];
-};
+import { Task, Column, Project } from "@/types/task";
 
 export default function ProjectPage() {
   const params = useParams();
@@ -51,7 +28,20 @@ export default function ProjectPage() {
         throw new Error("Failed to fetch project");
       }
       const data = await response.json();
-      setProject(data);
+
+      // Transform the data to match your Task type
+      const transformedProject: Project = {
+        ...data,
+        columns: data.columns.map((column: any) => ({
+          ...column,
+          tasks: column.tasks.map((task: any) => ({
+            ...task,
+            dueDate: task.dueDate ? new Date(task.dueDate).toISOString() : null,
+          })),
+        })),
+      };
+
+      setProject(transformedProject);
       setView(data.design.toLowerCase() as "list" | "board");
     } catch (error) {
       console.error("Error fetching project:", error);
@@ -64,7 +54,6 @@ export default function ProjectPage() {
       setIsLoading(false);
     }
   };
-
   const handleAddTask = async (newTask: Omit<Task, "id">) => {
     try {
       const response = await fetch(`/api/projects/${params.projectId}/tasks`, {

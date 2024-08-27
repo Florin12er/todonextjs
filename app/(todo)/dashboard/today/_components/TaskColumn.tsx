@@ -1,60 +1,106 @@
 import { Draggable, Droppable } from "@hello-pangea/dnd";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TaskCard } from "./TaskCard";
-import { AddTaskInput } from "./AddTaskInput";
-
-type Task = {
-  id: number;
-  title: string;
-  status: string;
-  dueDate: Date;
-};
+import { Task, Column } from "@/types/task";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useState } from "react";
 
 type TaskColumnProps = {
-  status: string;
+  column: Column;
   index: number;
-  tasks: Task[];
-  onAddTask: (title: string, status: string) => void;
-  onUpdateTask: (id: number, updates: Partial<Task>) => void;
-  onRemoveTask: (id: number) => void;
+  onAddTask: (task: Omit<Task, "id">) => Promise<void>;
+  onUpdateTask: (task: Task) => Promise<void>;
+  onDeleteTask: (taskId: string) => Promise<void>;
+  onUpdateColumn: (column: Column) => Promise<void>;
+  onDeleteColumn: (columnId: string) => Promise<void>;
 };
 
 export function TaskColumn({
-  status,
+  column,
   index,
-  tasks,
   onAddTask,
   onUpdateTask,
-  onRemoveTask,
+  onDeleteTask,
+  onUpdateColumn,
+  onDeleteColumn,
 }: TaskColumnProps) {
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+
+  const addTask = async () => {
+    if (newTaskTitle.trim() !== "") {
+      await onAddTask({
+        title: newTaskTitle,
+        description: "",
+        dueDate: new Date(),
+        completed: false,
+        isToday: false,
+        columnId: column.id,
+        projectId: null,
+      });
+      setNewTaskTitle("");
+    }
+  };
+
   return (
-    <Draggable draggableId={status} index={index}>
+    <Draggable draggableId={column.id} index={index}>
       {(provided) => (
-        <div ref={provided.innerRef} {...provided.draggableProps}>
-          <Card>
-            <CardHeader>
-              <CardTitle {...provided.dragHandleProps}>{status}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Droppable droppableId={status} type="TASK">
-                {(provided) => (
-                  <div {...provided.droppableProps} ref={provided.innerRef}>
-                    {tasks.map((task, index) => (
-                      <TaskCard
-                        key={task.id}
-                        task={task}
-                        index={index}
-                        onUpdate={onUpdateTask}
-                        onRemove={onRemoveTask}
-                      />
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-              <AddTaskInput onAddTask={(title) => onAddTask(title, status)} />
-            </CardContent>
-          </Card>
+        <div
+          {...provided.draggableProps}
+          ref={provided.innerRef}
+          className="bg-gray-100 p-4 rounded-lg"
+        >
+          <h2
+            {...provided.dragHandleProps}
+            className="text-lg font-semibold mb-2"
+          >
+            {column.title}
+          </h2>
+          <Button
+            onClick={() => onDeleteColumn(column.id)}
+            variant="destructive"
+            size="sm"
+          >
+            Delete Column
+          </Button>
+          <div className="mb-2">
+            <Input
+              type="text"
+              placeholder="New task title"
+              value={newTaskTitle}
+              onChange={(e) => setNewTaskTitle(e.target.value)}
+              className="mr-2"
+            />
+            <Button onClick={addTask} size="sm">
+              Add Task
+            </Button>
+          </div>
+          <Droppable droppableId={column.id} type="TASK">
+            {(provided) => (
+              <div {...provided.droppableProps} ref={provided.innerRef}>
+                {column.tasks.map((task, index) => (
+                  <Draggable key={task.id} draggableId={task.id} index={index}>
+                    {(provided) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        {...provided.dragHandleProps}
+                        className="bg-white p-2 mb-2 rounded"
+                      >
+                        {task.title}
+                        <Button
+                          onClick={() => onDeleteTask(task.id)}
+                          variant="destructive"
+                          size="sm"
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
         </div>
       )}
     </Draggable>

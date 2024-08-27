@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import Task from "@/types/task";
 import prisma from "@/lib/prisma";
 
 export async function POST(
@@ -14,7 +13,7 @@ export async function POST(
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const body: Omit<Task, "id"> = await req.json();
+    const body = await req.json();
     const { title, columnId, dueDate, completed, description } = body;
 
     // Find the first column if columnId is not provided
@@ -25,12 +24,18 @@ export async function POST(
         orderBy: { order: "asc" },
       });
       if (!firstColumn) {
-        return NextResponse.json(
-          { message: "No columns found in the project" },
-          { status: 400 },
-        );
+        // If no columns exist, create a default column
+        const defaultColumn = await prisma.column.create({
+          data: {
+            title: "To Do",
+            order: 0,
+            projectId: params.projectId,
+          },
+        });
+        targetColumnId = defaultColumn.id;
+      } else {
+        targetColumnId = firstColumn.id;
       }
-      targetColumnId = firstColumn.id;
     }
 
     const task = await prisma.task.create({
@@ -38,7 +43,8 @@ export async function POST(
         title,
         description,
         dueDate: dueDate ? new Date(dueDate) : null,
-        completed,
+        completed: completed || false,
+        isToday: false, // Set a default value
         userId,
         projectId: params.projectId,
         columnId: targetColumnId,
@@ -49,7 +55,7 @@ export async function POST(
   } catch (error) {
     console.error("POST /api/projects/[projectId]/tasks - Error:", error);
     return NextResponse.json(
-      { message: "Internal Server Error" },
+      { message: "Internal Server Error", error: (error as Error).message },
       { status: 500 },
     );
   }

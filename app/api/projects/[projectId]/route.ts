@@ -95,3 +95,54 @@ export async function DELETE(
     );
   }
 }
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: { projectId: string } },
+) {
+  try {
+    const { userId } = auth();
+
+    if (!userId) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const projectId = params.projectId;
+
+    // Parse the request body
+    const body = await req.json();
+    const { name, description, color, isFavorite, design, order } = body;
+
+    // Check if the project belongs to the user
+    const existingProject = await prisma.project.findUnique({
+      where: { id: projectId, userId },
+    });
+
+    if (!existingProject) {
+      return NextResponse.json(
+        { message: "Project not found" },
+        { status: 404 },
+      );
+    }
+
+    // Update the project
+    const updatedProject = await prisma.project.update({
+      where: { id: projectId },
+      data: {
+        name: name !== undefined ? name : undefined,
+        description: description !== undefined ? description : undefined,
+        color: color !== undefined ? color : undefined,
+        isFavorite: isFavorite !== undefined ? isFavorite : undefined,
+        design: design !== undefined ? design : undefined,
+        order: order !== undefined ? order : undefined,
+      },
+    });
+
+    return NextResponse.json(updatedProject);
+  } catch (error) {
+    console.error("PUT /api/projects/[projectId] - Error:", error);
+    return NextResponse.json(
+      { message: "Internal Server Error" },
+      { status: 500 },
+    );
+  }
+}

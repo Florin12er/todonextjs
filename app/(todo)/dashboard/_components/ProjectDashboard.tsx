@@ -5,6 +5,13 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { HexColorPicker } from "react-colorful";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { PlusCircle, Folder, Star, Trash2 } from "lucide-react";
@@ -62,6 +69,7 @@ const fetchProjects = async (): Promise<Project[]> => {
 export function ProjectDashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const {
@@ -96,6 +104,29 @@ export function ProjectDashboard() {
       });
     },
   });
+  const handleToggleFavorite = async (project: Project) => {
+    try {
+      await updateProjectMutation.mutateAsync({
+        id: project.id,
+        isFavorite: !project.isFavorite,
+      });
+    } catch (error) {
+      console.error("Error in handleToggleFavorite:", error);
+    }
+  };
+  const handleUpdateProjectColor = async (
+    projectId: string,
+    newColor: string,
+  ) => {
+    try {
+      await updateProjectMutation.mutateAsync({
+        id: projectId,
+        color: newColor,
+      });
+    } catch (error) {
+      console.error("Error in handleUpdateProjectColor:", error);
+    }
+  };
 
   const deleteProjectMutation = useMutation<void, Error, string>({
     mutationFn: (projectId) =>
@@ -117,6 +148,29 @@ export function ProjectDashboard() {
     },
   });
 
+  const updateProjectMutation = useMutation<Project, Error, Partial<Project>>({
+    mutationFn: (updatedProject) =>
+      fetch(`/api/projects/${updatedProject.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedProject),
+      }).then((res) => {
+        if (!res.ok) throw new Error("Failed to update project");
+        return res.json();
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      toast({ title: "Success", description: "Project updated successfully." });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update project. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleAddProject = async (newProject: NewProject): Promise<void> => {
     try {
       await addProjectMutation.mutateAsync(newProject);
@@ -131,6 +185,18 @@ export function ProjectDashboard() {
       setProjectToDelete(null);
     } catch (error) {
       console.error("Error in handleDeleteProject:", error);
+    }
+  };
+
+  const handleUpdateProjectName = async (
+    projectId: string,
+    newName: string,
+  ) => {
+    try {
+      await updateProjectMutation.mutateAsync({ id: projectId, name: newName });
+      setEditingProjectId(null);
+    } catch (error) {
+      console.error("Error in handleUpdateProjectName:", error);
     }
   };
 
@@ -163,16 +229,57 @@ export function ProjectDashboard() {
                     className="w-4 h-4 inline-block mr-2"
                     style={{ color: project.color }}
                   />
-                  {project.name}
-                  {project.isFavorite && (
-                    <Star className="w-4 h-4 ml-2 text-yellow-400 fill-current" />
+                  {editingProjectId === project.id ? (
+                    <input
+                      type="text"
+                      defaultValue={project.name}
+                      onBlur={(e) =>
+                        handleUpdateProjectName(project.id, e.target.value)
+                      }
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          handleUpdateProjectName(
+                            project.id,
+                            e.currentTarget.value,
+                          );
+                        }
+                      }}
+                      autoFocus
+                      className="border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                    />
+                  ) : (
+                    <span onClick={() => setEditingProjectId(project.id)}>
+                      {project.name}
+                    </span>
                   )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleToggleFavorite(project)}
+                    className={`ml-2 ${project.isFavorite ? "text-yellow-400" : "text-gray-400"}`}
+                  >
+                    <Star className="h-4 w-4 fill-current" />
+                  </Button>
                 </CardTitle>
                 <div className="flex items-center space-x-2">
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: project.color }}
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <Palette
+                          className="h-4 w-4"
+                          style={{ color: project.color }}
+                        />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <HexColorPicker
+                        color={project.color}
+                        onChange={(color) =>
+                          handleUpdateProjectColor(project.id, color)
+                        }
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <Button
                     variant="ghost"
                     size="sm"

@@ -7,6 +7,8 @@ import {
   Calendar as CalendarIcon,
   CheckCircle2,
   Circle,
+  Edit2,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +35,8 @@ export function TaskListPage({
   onDeleteTask,
 }: TaskListPageProps) {
   const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editingTaskTitle, setEditingTaskTitle] = useState("");
 
   const addTask = () => {
     if (newTaskTitle.trim() !== "") {
@@ -67,6 +71,25 @@ export function TaskListPage({
     }
   };
 
+  const startEditingTask = (task: Task) => {
+    setEditingTaskId(task.id);
+    setEditingTaskTitle(task.title);
+  };
+
+  const cancelEditingTask = () => {
+    setEditingTaskId(null);
+    setEditingTaskTitle("");
+  };
+
+  const saveEditedTask = async (task: Task) => {
+    if (editingTaskTitle.trim() !== "") {
+      const updatedTask = { ...task, title: editingTaskTitle };
+      await onUpdateTask(updatedTask);
+      setEditingTaskId(null);
+      setEditingTaskTitle("");
+    }
+  };
+
   return (
     <div className="container mx-auto p-4">
       <div className="mb-6">
@@ -93,7 +116,7 @@ export function TaskListPage({
               task.completed ? "bg-gray-100" : "bg-white"
             }`}
           >
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 flex-grow">
               <Button
                 variant="ghost"
                 size="sm"
@@ -106,13 +129,51 @@ export function TaskListPage({
                   <Circle className="h-5 w-5" />
                 )}
               </Button>
-              <span
-                className={task.completed ? "line-through text-gray-500" : ""}
-              >
-                {task.title}
-              </span>
+              {editingTaskId === task.id ? (
+                <Input
+                  type="text"
+                  value={editingTaskTitle}
+                  onChange={(e) => setEditingTaskTitle(e.target.value)}
+                  className="flex-grow"
+                />
+              ) : (
+                <span
+                  className={task.completed ? "line-through text-gray-500" : ""}
+                >
+                  {task.title}
+                </span>
+              )}
             </div>
             <div className="flex items-center space-x-2">
+              {editingTaskId === task.id ? (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => saveEditedTask(task)}
+                    className="text-green-500 hover:text-green-700"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={cancelEditingTask}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => startEditingTask(task)}
+                  className="text-blue-500 hover:text-blue-700"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+              )}
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm">

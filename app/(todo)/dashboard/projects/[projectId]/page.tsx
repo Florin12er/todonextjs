@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { TaskBoardPage } from "../../today/_components/TaskBoardPage";
-import { TaskListPage } from "../../today/_components/TaskListPage";
+import { TaskBoardPage } from "../../_components/TaskBoardPage";
+import { TaskListPage } from "../../_components/TaskListPage";
 import { toast } from "@/components/ui/use-toast";
 import { Spinner } from "@/components/ui/Spinner";
 import { Task, Column, Project } from "@/types/task";
@@ -344,10 +344,6 @@ export default function ProjectPage() {
           </Button>
         </div>
       </div>
-
-      {project.description && (
-        <p className="text-gray-600 mb-6">{project.description}</p>
-      )}
 
       {view === "list" ? (
         <TaskListPage

@@ -26,16 +26,6 @@ const routes = [
     icon: LayoutDashboard,
     href: "/dashboard",
   },
-  {
-    label: "Tasks",
-    icon: ListCheck,
-    href: "/dashboard/tasks",
-  },
-  {
-    label: "Today",
-    icon: CalendarCheck,
-    href: "/dashboard/today",
-  },
 ];
 
 const MIN_WIDTH = 280;

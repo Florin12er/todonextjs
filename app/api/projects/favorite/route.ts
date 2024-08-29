@@ -16,6 +16,14 @@ export async function GET(req: NextRequest) {
         userId: userId,
         isFavorite: true, // Only get favorite projects
       },
+      include: {
+        tasks: {
+          select: {
+            id: true,
+            completed: true,
+          },
+        },
+      },
       orderBy: { createdAt: "desc" },
     });
 

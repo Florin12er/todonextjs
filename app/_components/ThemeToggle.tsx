@@ -19,7 +19,7 @@ export function ThemeToggle() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          className="dark:bg-[#1f1f1f] dark:hover:bg-zinc-800"
+          className="dark:hover:bg-zinc-800"
           variant="transparent"
           size="icon"
         >

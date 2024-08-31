@@ -13,7 +13,7 @@ export default function DashboardLayout({
   const [queryClient] = useState(() => new QueryClient());
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="h-full relative">
+      <div className="h-full relative dark:bg-slate-800 dark:text-white">
         <Sidebar onWidthChange={setSidebarWidth} />
         <main
           className="transition-all duration-100 ease-in-out"

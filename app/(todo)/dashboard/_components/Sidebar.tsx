@@ -4,13 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
-import {
-  LayoutDashboard,
-  CalendarCheck,
-  ListCheck,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { LayoutDashboard, ChevronLeft, ChevronRight, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef } from "react";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -81,45 +75,37 @@ export default function Sidebar({
 
   return (
     <>
-      {!isOpen && (
-        <Button
-          onClick={toggleSidebar}
-          size="icon"
-          variant="ghost"
-          className={cn(
-            "fixed top-4 left-4 z-50 bg-opacity-80 backdrop-blur-sm transition-all duration-300",
-            isOpen ? "left-[280px]" : "left-4",
-          )}
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      )}
+      <Button
+        onClick={toggleSidebar}
+        size="icon"
+        variant="ghost"
+        className={cn(
+          "fixed top-4 left-4 z-50 bg-white dark:bg-gray-800 bg-opacity-80 dark:bg-opacity-80 backdrop-blur-sm transition-all duration-300 shadow-md hover:shadow-lg",
+          isOpen ? "left-[280px]" : "left-4",
+        )}
+      >
+        {isOpen ? (
+          <ChevronLeft className="h-5 w-5" />
+        ) : (
+          <Menu className="h-5 w-5" />
+        )}
+      </Button>
       <aside
         ref={sidebarRef}
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex flex-col bg-gray-900 text-white transition-all duration-300 ease-in-out",
+          "fixed inset-y-0 left-0 z-40 flex flex-col bg-white dark:bg-gray-900 text-gray-800 dark:text-white transition-all duration-300 ease-in-out shadow-xl",
           isOpen ? `w-[${width}px]` : "w-0",
         )}
         style={{ width: isOpen ? width : 0 }}
       >
-        <div className="flex items-center justify-between p-6">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <Link href="/dashboard" className="flex items-center">
             <h1 className={cn("text-2xl font-bold", isOpen ? "" : "hidden")}>
               TodoApp
             </h1>
           </Link>
-          {isOpen && (
-            <Button
-              onClick={() => setIsOpen(false)}
-              variant="transparent"
-              className="ml-2"
-              aria-label="Close sidebar"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-          )}
         </div>
-        <nav className="flex-1 space-y-2 px-4 py-4">
+        <nav className="flex-1 space-y-2 px-4 py-4 overflow-y-auto">
           {routes.map((route) => (
             <Link
               key={route.href}
@@ -127,8 +113,8 @@ export default function Sidebar({
               className={cn(
                 "flex items-center rounded-lg px-4 py-3 text-sm font-medium transition-colors",
                 pathname === route.href
-                  ? "bg-white/10 text-white"
-                  : "text-zinc-400 hover:bg-white/5 hover:text-white",
+                  ? "bg-gray-100 dark:bg-gray-800 text-blue-600 dark:text-blue-400"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400",
                 !isOpen && "justify-center",
               )}
             >
@@ -146,7 +132,7 @@ export default function Sidebar({
           )}
         </nav>
         {isOpen && (
-          <div className="border-t border-gray-800 px-4 py-4">
+          <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-4">
             <ThemeToggle />
             <div className="mt-4 flex items-center">
               <UserButton />
@@ -156,7 +142,7 @@ export default function Sidebar({
         )}
         {!isMobile && (
           <div
-            className="absolute top-0 right-0 h-full w-1 cursor-col-resize bg-gray-800 hover:bg-gray-700"
+            className="absolute top-0 right-0 h-full w-1 cursor-col-resize bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
             onMouseDown={handleMouseDown}
           />
         )}

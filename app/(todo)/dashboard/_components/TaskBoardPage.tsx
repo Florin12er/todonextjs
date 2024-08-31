@@ -125,9 +125,12 @@ export function TaskBoardPage({
             placeholder="New column title"
             value={newColumnTitle}
             onChange={(e) => setNewColumnTitle(e.target.value)}
-            className="mr-2"
+            className="mr-2 dark:text-white dark:bg-slate-700"
           />
-          <Button onClick={addColumn}>
+          <Button
+            onClick={addColumn}
+            className="dark:text-white dark:bg-slate-700"
+          >
             <Plus className="mr-2 h-4 w-4" /> Add Column
           </Button>
         </div>

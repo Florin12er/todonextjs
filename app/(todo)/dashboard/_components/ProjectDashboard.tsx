@@ -28,6 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
 
 type Task = {
   id: string;
@@ -221,7 +222,7 @@ export function ProjectDashboard() {
           return (
             <Card
               key={project.id}
-              className="hover:shadow-lg transition-shadow duration-300"
+              className="hover:shadow-lg dark:bg-slate-700 transition-shadow duration-300"
             >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium flex items-center">
@@ -230,13 +231,13 @@ export function ProjectDashboard() {
                     style={{ color: project.color }}
                   />
                   {editingProjectId === project.id ? (
-                    <input
+                    <Input
                       type="text"
                       defaultValue={project.name}
                       onBlur={(e) =>
                         handleUpdateProjectName(project.id, e.target.value)
                       }
-                      onKeyPress={(e) => {
+                      onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           handleUpdateProjectName(
                             project.id,
@@ -245,7 +246,7 @@ export function ProjectDashboard() {
                         }
                       }}
                       autoFocus
-                      className="border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                      className="border-b border-gray-300 focus:outline-none focus:border-blue-500 dark:bg-slate-800 dark:text-white dark:border-slate-600"
                     />
                   ) : (
                     <span onClick={() => setEditingProjectId(project.id)}>

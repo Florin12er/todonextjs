@@ -91,18 +91,21 @@ export function TaskListPage({
   };
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto p-4 dark:bg-gray-900 dark:text-white">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold mb-4">Tasks</h2>
+        <h2 className="text-2xl font-bold mb-4 dark:text-gray-100">Tasks</h2>
         <div className="flex space-x-2">
           <Input
             type="text"
             placeholder="New task title"
             value={newTaskTitle}
             onChange={(e) => setNewTaskTitle(e.target.value)}
-            className="flex-grow"
+            className="flex-grow dark:bg-gray-800 dark:text-white dark:border-gray-700"
           />
-          <Button onClick={addTask}>
+          <Button
+            onClick={addTask}
+            className="bg-blue-500 hover:bg-blue-600 text-white dark:bg-blue-600 dark:hover:bg-blue-700"
+          >
             <Plus className="mr-2 h-4 w-4" /> Add Task
           </Button>
         </div>
@@ -113,7 +116,9 @@ export function TaskListPage({
           <li
             key={task.id}
             className={`flex items-center justify-between p-4 rounded-lg shadow-sm ${
-              task.completed ? "bg-gray-100" : "bg-white"
+              task.completed
+                ? "bg-gray-100 dark:bg-gray-800"
+                : "bg-white dark:bg-gray-700"
             }`}
           >
             <div className="flex items-center space-x-3 flex-grow">
@@ -121,7 +126,11 @@ export function TaskListPage({
                 variant="ghost"
                 size="sm"
                 onClick={() => toggleTaskCompletion(task)}
-                className={task.completed ? "text-green-500" : "text-gray-400"}
+                className={`${
+                  task.completed
+                    ? "text-green-500 dark:text-green-400"
+                    : "text-gray-400 dark:text-gray-300"
+                } hover:bg-transparent dark:hover:bg-transparent`}
               >
                 {task.completed ? (
                   <CheckCircle2 className="h-5 w-5" />
@@ -134,11 +143,15 @@ export function TaskListPage({
                   type="text"
                   value={editingTaskTitle}
                   onChange={(e) => setEditingTaskTitle(e.target.value)}
-                  className="flex-grow"
+                  className="flex-grow dark:bg-gray-800 dark:text-white dark:border-gray-600"
                 />
               ) : (
                 <span
-                  className={task.completed ? "line-through text-gray-500" : ""}
+                  className={`${
+                    task.completed
+                      ? "line-through text-gray-500 dark:text-gray-400"
+                      : "dark:text-white"
+                  }`}
                 >
                   {task.title}
                 </span>
@@ -151,7 +164,7 @@ export function TaskListPage({
                     variant="ghost"
                     size="sm"
                     onClick={() => saveEditedTask(task)}
-                    className="text-green-500 hover:text-green-700"
+                    className="text-green-500 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
                   >
                     <CheckCircle2 className="h-4 w-4" />
                   </Button>
@@ -159,7 +172,7 @@ export function TaskListPage({
                     variant="ghost"
                     size="sm"
                     onClick={cancelEditingTask}
-                    className="text-red-500 hover:text-red-700"
+                    className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -169,26 +182,31 @@ export function TaskListPage({
                   variant="ghost"
                   size="sm"
                   onClick={() => startEditingTask(task)}
-                  className="text-blue-500 hover:text-blue-700"
+                  className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                 >
                   <Edit2 className="h-4 w-4" />
                 </Button>
               )}
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    className="dark:bg-gray-800 dark:text-white dark:border-gray-600"
+                    size="sm"
+                  >
                     <CalendarIcon className="h-4 w-4 mr-1" />
                     {task.dueDate
                       ? format(new Date(task.dueDate), "MMM d")
                       : "Set date"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0 dark:bg-gray-800">
                   <Calendar
                     mode="single"
                     selected={task.dueDate ? new Date(task.dueDate) : undefined}
                     onSelect={(date) => updateTaskDueDate(task.id, date)}
                     initialFocus
+                    className="dark:bg-gray-800 dark:text-white"
                   />
                 </PopoverContent>
               </Popover>
@@ -196,7 +214,7 @@ export function TaskListPage({
                 variant="ghost"
                 size="sm"
                 onClick={() => onDeleteTask(task.id)}
-                className="text-red-500 hover:text-red-700"
+                className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
